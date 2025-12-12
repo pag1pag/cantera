@@ -503,7 +503,17 @@ public:
     //! @name  Properties of the Standard State of the Species in the Solution
     //! @{
 
+    //! Return the standard chemical potentials of the species [J/kmol].
+    /*!
+     * For heavy species, this is identical to the IdealGasPhase
+     * implementation. For electrons, the standard chemical potential
+     * is evaluated at the electron temperature:
+     * @f[
+     *  \mu^0_{e}(T_e) = g_k^0(T_e) + RT_e \ln \left(\frac{P}{P^0}\right).
+     * @f]
+     */
     void getStandardChemPotentials(double* muStar) const override;
+
     // void getEnthalpy_RT(double* hrt) const override;
     void getEntropy_R(double* sr) const override;
     void getGibbs_RT(double* grt) const override;
@@ -519,7 +529,18 @@ public:
 
     // void getEnthalpy_RT_ref(double* hrt) const override;
     // void getGibbs_RT_ref(double* grt) const override;
+
+    //! Return the reference-state Gibbs free energys of the species [J/kmol].
+    /*!
+     * For heavy species, this is identical to the IdealGasPhase
+     * implementation. For electrons, the reference-state Gibbs free energy
+     * is evaluated at the electron temperature:
+     * @f[
+     *  \hat{g}^0_{e}(T_e) = \hat{h}^0_{e}(T_e) - T_e \hat{s}^0_{e}(T_e).
+     * @f]
+     */
     void getGibbs_ref(double* g) const override;
+
     // void getEntropy_R_ref(double* er) const override;
     // void getIntEnergy_RT_ref(double* urt) const override;
     // void getCp_R_ref(double* cprt) const override;
