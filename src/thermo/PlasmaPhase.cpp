@@ -25,13 +25,13 @@ PlasmaPhase::PlasmaPhase(const string& inputFile, const string& id_)
 {
     initThermoFile(inputFile, id_);
 
-    // initial electron temperature
+    // Initial electron temperature.
     m_electronTemp = temperature();
 
-    // Initialize the Boltzmann Solver
+    // Initialize the Boltzmann Solver.
     m_eedfSolver = make_unique<EEDFTwoTermApproximation>(this);
 
-    // Set Energy Grid (Hardcoded Defaults for Now)
+    // Set Energy Grid (Hardcoded Defaults for Now).
     double kTe_max = 60;
     size_t nGridCells = 301;
     m_nPoints = nGridCells + 1;
@@ -46,7 +46,7 @@ PlasmaPhase::~PlasmaPhase()
         soln->kinetics()->removeReactionAddedCallback(this);
     }
     for (size_t k = 0; k < nCollisions(); k++) {
-        // remove callback
+        // Remove callback.
         m_collisions[k]->removeSetRateCallback(this);
     }
 }
@@ -153,7 +153,7 @@ void PlasmaPhase::electronEnergyDistributionChanged()
 void PlasmaPhase::electronEnergyLevelChanged()
 {
     m_levelNum++;
-    // Cross sections are interpolated on the energy levels
+    // Cross sections are interpolated on the energy levels.
     if (m_collisions.size() > 0) {
         vector<double> energyLevels(m_nPoints);
         MappedVector(energyLevels.data(), m_nPoints) = m_electronEnergyLevels;
@@ -216,12 +216,12 @@ void PlasmaPhase::setDiscretizedElectronEnergyDist(const double* levels,
 
 void PlasmaPhase::updateElectronTemperatureFromEnergyDist()
 {
-    // calculate mean electron energy and electron temperature
+    // Calculate mean electron energy and electron temperature.
     Eigen::ArrayXd eps52 = m_electronEnergyLevels.pow(5./2.);
     double epsilon_m = 2.0 / 5.0 * numericalQuadrature(m_quadratureMethod,
                                                        m_electronEnergyDist, eps52);
     if (epsilon_m < 0.0 && m_quadratureMethod == "simpson") {
-        // try trapezoidal method
+        // Try trapezoidal method.
         epsilon_m = 2.0 / 5.0 * numericalQuadrature(
             "trapezoidal", m_electronEnergyDist, eps52);
     }
@@ -350,7 +350,7 @@ void PlasmaPhase::initThermo()
 {
     IdealGasPhase::initThermo();
 
-    // Check electron species
+    // Check if there is an electron species in the phase.
     if (m_electronSpeciesIndex == npos) {
         throw CanteraError("PlasmaPhase::initThermo",
                            "No electron species found.");
@@ -359,8 +359,8 @@ void PlasmaPhase::initThermo()
 
 void PlasmaPhase::setSolution(std::weak_ptr<Solution> soln) {
     ThermoPhase::setSolution(soln);
-    // register callback function to be executed
-    // when the thermo or kinetics object changed
+    // Register callback function to be executed
+    // when the thermo or kinetics object changed.
     if (shared_ptr<Solution> soln = m_soln.lock()) {
         soln->registerChangedCallback(this, [&]() {
             setCollisions();
@@ -376,8 +376,8 @@ void PlasmaPhase::setCollisions()
             return;
         }
 
-        // add collision from the initial list of reactions. Only add reactions we
-        // haven't seen before
+        // Add collision from the initial list of reactions.
+        // Only add reactions we haven't seen before.
         set<Reaction*> existing;
         for (auto& R : m_collisions) {
             existing.insert(R.get());
@@ -391,8 +391,8 @@ void PlasmaPhase::setCollisions()
             addCollision(R);
         }
 
-        // register callback when reaction is added later
-        // Modifying collision reactions is not supported
+        // Register callback when reaction is added later.
+        // Modifying collision reactions is not supported.
         kin->registerReactionAddedCallback(this, [this, kin]() {
             size_t i = kin->nReactions() - 1;
             if (kin->reaction(i)->type() == "electron-collision-plasma") {
@@ -406,18 +406,18 @@ void PlasmaPhase::addCollision(shared_ptr<Reaction> collision)
 {
     size_t i = nCollisions();
 
-    // setup callback to signal updating the cross-section-related
-    // parameters
+    // Setup callback to signal updating the cross-section-related
+    // parameters.
     collision->registerSetRateCallback(this, [this, i, collision]() {
         m_interp_cs_ready[i] = false;
         m_collisionRates[i] =
             std::dynamic_pointer_cast<ElectronCollisionPlasmaRate>(collision->rate());
     });
 
-    // Identify target species for electron-collision reactions
+    // Identify target species for electron-collision reactions.
     string target;
     for (const auto& [name, _] : collision->reactants) {
-        // Reactants are expected to be electrons and the target species
+        // Reactants are expected to be electrons and the target species.
         if (name != electronSpeciesName()) {
             m_targetSpeciesIndices.emplace_back(speciesIndex(name, true));
             target = name;
@@ -434,11 +434,11 @@ void PlasmaPhase::addCollision(shared_ptr<Reaction> collision)
         std::dynamic_pointer_cast<ElectronCollisionPlasmaRate>(collision->rate()));
     m_interp_cs_ready.emplace_back(false);
 
-    // resize parameters
+    // Resize parameters.
     m_elasticElectronEnergyLossCoefficients.resize(nCollisions());
     updateInterpolatedCrossSection(i);
 
-    // Set up data used by Boltzmann solver
+    // Set up data used by Boltzmann solver.
     auto& rate = *m_collisionRates.back();
     string kind = m_collisionRates.back()->kind();
 
@@ -477,12 +477,12 @@ bool PlasmaPhase::updateInterpolatedCrossSection(size_t i)
 void PlasmaPhase::updateElectronEnergyDistDifference()
 {
     m_electronEnergyDistDiff.resize(nElectronEnergyLevels());
-    // Forward difference for the first point
+    // Forward difference for the first point.
     m_electronEnergyDistDiff[0] =
         (m_electronEnergyDist[1] - m_electronEnergyDist[0]) /
         (m_electronEnergyLevels[1] - m_electronEnergyLevels[0]);
 
-    // Central difference for the middle points
+    // Central difference for the middle points.
     for (size_t i = 1; i < m_nPoints - 1; i++) {
         double h1 = m_electronEnergyLevels[i+1] - m_electronEnergyLevels[i];
         double h0 = m_electronEnergyLevels[i] - m_electronEnergyLevels[i-1];
@@ -492,7 +492,7 @@ void PlasmaPhase::updateElectronEnergyDistDifference()
                 (h1 * h0) / (h1 + h0);
     }
 
-    // Backward difference for the last point
+    // Backward difference for the last point.
     m_electronEnergyDistDiff[m_nPoints-1] =
         (m_electronEnergyDist[m_nPoints-1] -
         m_electronEnergyDist[m_nPoints-2]) /
@@ -502,11 +502,11 @@ void PlasmaPhase::updateElectronEnergyDistDifference()
 
 void PlasmaPhase::updateElasticElectronEnergyLossCoefficients()
 {
-    // cache of cross section plus distribution plus energy-level number
+    // Cache of cross section plus distribution plus energy-level number.
     static const int cacheId = m_cache.getId();
     CachedScalar last_stateNum = m_cache.getScalar(cacheId);
 
-    // combine the distribution and energy level number
+    // Combine the distribution and energy level number.
     int stateNum = m_distNum + m_levelNum;
 
     vector<bool> interpChanged(m_collisions.size());
@@ -515,15 +515,15 @@ void PlasmaPhase::updateElasticElectronEnergyLossCoefficients()
     }
 
     if (last_stateNum.validate(temperature(), stateNum)) {
-        // check each cross section, and only update coefficients that
-        // the interpolated cross sections change
+        // Check each cross section, and only update coefficients that
+        // the interpolated cross sections change.
         for (size_t i = 0; i < m_collisions.size(); i++) {
             if (interpChanged[i]) {
                 updateElasticElectronEnergyLossCoefficient(i);
             }
         }
     } else {
-        // update every coefficient if distribution, temperature,
+        // Update every coefficient if distribution, temperature,
         // or energy levels change.
         for (size_t i = 0; i < m_collisions.size(); i++) {
             updateElasticElectronEnergyLossCoefficient(i);
@@ -542,10 +542,10 @@ void PlasmaPhase::updateElasticElectronEnergyLossCoefficient(size_t i)
         m_collisionRates[i]->crossSectionInterpolated().size()
     );
 
-    // Mass ratio calculation
+    // Mass ratio calculation.
     double mass_ratio = ElectronMass / molecularWeight(k) * Avogadro;
 
-    // Calculate the rate using Simpson's rule or trapezoidal rule
+    // Calculate the rate using Simpson's rule or trapezoidal rule.
     Eigen::ArrayXd f0_plus = m_electronEnergyDist + Boltzmann * temperature() /
                                 ElectronCharge * m_electronEnergyDistDiff;
     m_elasticElectronEnergyLossCoefficients[i] = 2.0 * mass_ratio * gamma *
@@ -571,6 +571,8 @@ double PlasmaPhase::elasticPowerLoss()
 
 void PlasmaPhase::updateThermo() const
 {
+    // Update the heavy species thermodynamic properties
+    // before updating the electron species properties.
     IdealGasPhase::updateThermo();
     static const int cacheId = m_cache.getId();
     CachedScalar cached = m_cache.getScalar(cacheId);
@@ -580,12 +582,15 @@ void PlasmaPhase::updateThermo() const
     // If the electron temperature has changed since the last time these
     // properties were computed, recompute them.
     if (cached.state1 != tempNow || cached.state2 != electronTempNow) {
+        // Evaluate the electron species thermodynamic properties
+        // at the electron temperature.
         m_spthermo.update_single(k, electronTemperature(),
                 &m_cp0_R[k], &m_h0_RT[k], &m_s0_R[k]);
         cached.state1 = tempNow;
         cached.state2 = electronTempNow;
+
     }
-    // update the species Gibbs functions
+    // Update the electron Gibbs functions, with the electron temperature.
     m_g0_RT[k] = m_h0_RT[k] - m_s0_R[k];
 }
 
@@ -629,6 +634,7 @@ void PlasmaPhase::getPartialMolarIntEnergies(double* ubar) const
     for (size_t k = 0; k < m_kk; k++) {
         ubar[k] = RT() * (_h[k] - 1.0);
     }
+    // Redefine it for the electron species.
     size_t k = m_electronSpeciesIndex;
     ubar[k] = RTe() * (_h[k] - 1.0);
 }
