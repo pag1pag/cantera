@@ -589,9 +589,9 @@ void PlasmaPhase::updateThermo() const
         cached.state1 = tempNow;
         cached.state2 = electronTempNow;
 
+        // Update the electron Gibbs functions, with the electron temperature.
+        m_g0_RT[k] = m_h0_RT[k] - m_s0_R[k];
     }
-    // Update the electron Gibbs functions, with the electron temperature.
-    m_g0_RT[k] = m_h0_RT[k] - m_s0_R[k];
 }
 
 double PlasmaPhase::enthalpy_mole() const {
