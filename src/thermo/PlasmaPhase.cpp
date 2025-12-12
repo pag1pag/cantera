@@ -650,6 +650,23 @@ double PlasmaPhase::cv_mass_h() const
 }
 
 
+double PlasmaPhase::meanTemperature() const
+{
+    double T_g = temperature();
+    double T_e = electronTemperature();
+    double X_e = moleFraction(m_electronSpeciesIndex);
+    return T_g + X_e * (T_e - T_g);
+}
+
+double PlasmaPhase::pressure() const {
+    double value = IdealGasPhase::pressure();
+    double T_g = temperature();
+    double T_e = electronTemperature();
+    double C_e = concentration(m_electronSpeciesIndex);
+    value += C_e * GasConstant * (T_e - T_g);
+    return value;
+}
+
 void PlasmaPhase::getGibbs_ref(double* g) const
 {
     IdealGasPhase::getGibbs_ref(g);
