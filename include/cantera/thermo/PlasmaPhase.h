@@ -105,20 +105,44 @@ public:
 
     void initThermo() override;
 
+    bool addSpecies(shared_ptr<Species> spec) override;
+    virtual void setSolution(std::weak_ptr<Solution> soln) override;
+
+    void getParameters(AnyMap& phaseNode) const override;
+    void setParameters(const AnyMap& phaseNode,
+                       const AnyMap& rootNode=AnyMap()) override;
+
+
+    //! Electron Species Index
+    size_t electronSpeciesIndex() const {
+        return m_electronSpeciesIndex;
+    }
+
+    //! Electron species name
+    string electronSpeciesName() const {
+        return speciesName(m_electronSpeciesIndex);
+    }
+
+
+    // ================================================================= //
+    // ================================================================= //
+    //! @name Electron Energy Distribution Functions
+    //! @{
+
     //! Set electron energy levels.
-    //! @param  levels The vector of electron energy levels (eV).
+    //! @param  levels The vector of electron energy levels [eV].
     //!                Length: #m_nPoints.
     //! @param  length The length of the @c levels.
     void setElectronEnergyLevels(const double* levels, size_t length);
 
     //! Get electron energy levels.
-    //! @param  levels The vector of electron energy levels (eV). Length: #m_nPoints
+    //! @param  levels The vector of electron energy levels [eV]. Length: #m_nPoints
     void getElectronEnergyLevels(double* levels) const {
         Eigen::Map<Eigen::ArrayXd>(levels, m_nPoints) = m_electronEnergyLevels;
     }
 
     //! Set discretized electron energy distribution.
-    //! @param  levels The vector of electron energy levels (eV).
+    //! @param  levels The vector of electron energy levels [eV].
     //!                Length: #m_nPoints.
     //! @param  distrb The vector of electron energy distribution.
     //!                Length: #m_nPoints.
@@ -140,25 +164,35 @@ public:
     //! @param  x The shape factor
     void setIsotropicShapeFactor(double x);
 
-    //! The shape factor of isotropic electron energy distribution
+    //! The shape factor of isotropic electron energy distribution.
     double isotropicShapeFactor() const {
         return m_isotropicShapeFactor;
     }
 
-    //! Set the internally stored electron temperature of the phase (K).
-    //! @param  Te Electron temperature in Kelvin
+    //! Electron Temperature [K].
+    //!     @return The electron temperature of the phase.
+    double electronTemperature() const override {
+        return m_electronTemp;
+    }
+    //! Set the internally stored electron temperature of the phase [K].
+    //! @param  Te Electron temperature in Kelvin.
     void setElectronTemperature(double Te) override;
 
-    //! Set mean electron energy [eV]. This method also sets electron temperature
-    //! accordingly.
+    //! Mean electron energy [eV].
+    double meanElectronEnergy() const {
+        return 3.0 / 2.0 * electronTemperature() * Boltzmann / ElectronCharge;
+    }
+
+    //! Set mean electron energy [eV].
+    //! This method also sets electron temperature accordingly.
     void setMeanElectronEnergy(double energy);
 
-    //! Get electron energy distribution type
+    //! Get electron energy distribution type.
     string electronEnergyDistributionType() const {
         return m_distributionType;
     }
 
-    //! Set electron energy distribution type
+    //! Set electron energy distribution type.
     void setElectronEnergyDistributionType(const string& type);
 
     //! Numerical quadrature method. Method: #m_quadratureMethod
@@ -172,12 +206,7 @@ public:
         m_quadratureMethod = method;
     }
 
-    //! Mean electron energy [eV]
-    double meanElectronEnergy() const {
-        return 3.0 / 2.0 * electronTemperature() * Boltzmann / ElectronCharge;
-    }
-
-    //! Set flag of automatically normalize electron energy distribution
+    //! Set flag of automatically normalize electron energy distribution.
     //! Flag: #m_do_normalizeElectronEnergyDist
     void enableNormalizeElectronEnergyDist(bool enable) {
         m_do_normalizeElectronEnergyDist = enable;
@@ -189,37 +218,12 @@ public:
         return m_do_normalizeElectronEnergyDist;
     }
 
-    bool addSpecies(shared_ptr<Species> spec) override;
-
-    //! Electron Temperature (K)
-    //!     @return The electron temperature of the phase
-    double electronTemperature() const override {
-        return m_electronTemp;
-    }
-
-    //! Return the Gas Constant multiplied by the current electron temperature
-    /*!
-     *  The units are Joules kmol-1
-     */
-    double RTe() const {
-        return electronTemperature() * GasConstant;
-    }
-
-    /**
-     * Electron pressure. Units: Pa.
-     * @f[P = n_{k_e} R T_e @f]
-     */
-    virtual double electronPressure() const {
-        return GasConstant * concentration(m_electronSpeciesIndex) *
-               electronTemperature();
-    }
-
-    //! Number of electron levels
+    //! Number of electron levels.
     size_t nElectronEnergyLevels() const {
         return m_nPoints;
     }
 
-    //! Number of electron collision cross sections
+    //! Number of electron collision cross sections.
     size_t nCollisions() const {
         return m_collisions.size();
     }
@@ -237,172 +241,9 @@ public:
         return m_collisionRates[i];
     }
 
-    //! Electron Species Index
-    size_t electronSpeciesIndex() const {
-        return m_electronSpeciesIndex;
-    }
-
-    //! Return the Molar enthalpy. Units: J/kmol.
-    /*!
-     * For an ideal gas mixture with additional electron,
-     * @f[
-     * \hat h(T) = \sum_{k \neq k_e} X_k \hat h^0_k(T) + X_{k_e} \hat h^0_{k_e}(T_e),
-     * @f]
-     * and is a function only of temperature. The standard-state pure-species
-     * enthalpies @f$ \hat h^0_k(T) @f$ are computed by the species
-     * thermodynamic property manager.
-     *
-     * @see MultiSpeciesThermo
-     */
-    double enthalpy_mole() const override;
-
-    double cp_mole() const override;
-    // double cp_mass() const; // Already defined in ThermoPhase
-    // double cv_mole() const; // Already defined in IdealGasPhase
-
-    //! Return the constant-pressure specific heat capacity of electrons [J/kmol/K].
-    /*!
-     * For electrons, the specific heat capacity at constant pressure does not
-     * depend on temperature. It is constant, and given by:
-     * @f[
-     * \hat c_{p,e} = \frac{5}{2} R
-     * @f]
-     * This comes from statistical mechanics, where only translational degrees of
-     * freedom contribute to the specific heat capacity (no electronic, vibrational, or
-     * rotational contributions). The factor of 5/2 arises from the 3/2R contribution
-     * from translational motion, plus an additional R from the pressure-volume work
-     * done at constant pressure.
-     */
-    double cp_mole_e() const;
-    //! Return the constant-pressure specific heat capacity of electrons [J/kg/K].
-    double cp_mass_e() const {
-        return cp_mole_e() / m_Me();
-    };
-    //! Return the constant-volume specific heat capacity of electrons [J/kmol/K].
-    double cv_mole_e() const {
-        return cp_mole_e() - GasConstant;
-    };
-    //! Return the constant-volume specific heat capacity of electrons [J/kg/K].
-    double cv_mass_e() const {
-        return cp_mass_e() - GasConstant / m_Me();
-    };
-
-    //! Return the constant-pressure specific heat capacity of heavy species [J/kmol/K].
-    /*!
-     * The mean heavy-species specific heat capacity at constant pressure is
-     * calculated as:
-     * @f[
-     * \hat c_{p,h} = \sum_{k \neq k_e} X_k \hat c^0_{p,k}(T_g)
-     * @f]
-     * where @f$ \hat c^0_{p,k}(T_g) @f$ is the standard-state specific heat capacity
-     * at constant pressure for species @f$ k @f$ and @f$ T_g @f$ is the gas temperature.
-     */
-    double cp_mole_h() const;
-    //! Return the constant-pressure specific heat capacity of heavy species [J/kg/K].
-    double cp_mass_h() const;
-    //! Return the constant-volume specific heat capacity of heavy species [J/kmol/K].
-    double cv_mole_h() const;
-    //! Return the constant-volume specific heat capacity of heavy species [J/kg/K].
-    double cv_mass_h() const;
-
-    //! Return the mean temperature of the plasma phase [K].
-    /*!
-     * In a plasma phase, the electron temperature can differ from the
-     * heavy-species (gas) temperature. Therefore, the mean temperature is
-     * defined as a mole-fraction-weighted average of the electron and
-     * heavy-species temperatures:
-     * @f[
-     *      \bar{T} = \sum_{k \neq k_e} X_k T_g + X_{k_e} T_e
-     *             = (1 - X_{k_e}) T_g + X_{k_e} T_e
-     *             = T_g + X_{k_e} (T_e - T_g)
-     * @f]
-     * See the `pressure()` method for usage of the mean temperature in
-     * calculating the pressure of the plasma phase.
-     */
-    double meanTemperature() const;
-
-    //! Return the pressure of the plasma phase [Pa].
-    /*!
-     * The pressure of the plasma phase is calculated using the mean temperature,
-     * which is a mole-fraction-weighted average of the electron and heavy-species
-     * temperatures.
-     * @f[
-     *      P = \sum_k n_k k_B T_k
-     *        = \sum_{k \neq e} n_k k_B T_g + n_{e} k_B T_e
-     *        = (n_{total} - n_{e}) k_B T_g + n_{e} k_B T_e
-     *        = n_{total} (1 - X_e) k_B T_g + n_{total} X_e k_B T_e
-     *        = n_{total} k_B \bar{T}
-     * @f]
-     * where @f$ \bar{T} @f$ is the mean temperature of the plasma phase,
-     * defined in the `meanTemperature()` method.
-     * Here, @f$ n_k @f$ is the number density of species @f$ k @f$,
-     * @f$ n_{total} @f$ is the total number density of the phase,
-     * @f$ X_e @f$ is the mole fraction of electrons, @f$ T_g @f$ is the
-     * heavy-species (gas) temperature, @f$ T_e @f$ is the electron temperature,
-     * and @f$ k_B @f$ is the Boltzmann constant.
-     * 
-     * The number density times Boltzmann constant can be expressed as
-     * @f$ n_{total} k_B = C_{total} R @f$, where @f$ C_{total} @f$ is the
-     * total molar concentration of the phase and @f$ R @f$ is the gas constant.
-     */
-    double pressure() const override;
-
-    //! Set the pressure at constant temperature and composition.
-    /*!
-     * Units: Pa.
-     * This method is implemented by setting the mass density to
-     * @f[
-     * \rho = \frac{P \overline{W}}{\hat R \overline{T} }.
-     * @f]
-     *
-     * @param p Pressure (Pa)
-     */
-    void setPressure(double p) override {
-        setDensity(p * meanMolecularWeight() / (GasConstant * meanTemperature()));
-    }
-
-    double entropy_mole() const override {
-        throw NotImplementedError("PlasmaPhase::entropy_mole");
-    }
-
-    double gibbs_mole() const override {
-        throw NotImplementedError("PlasmaPhase::gibbs_mole");
-    }
-
-    double intEnergy_mole() const override {
-        throw NotImplementedError("PlasmaPhase::intEnergy_mole");
-    }
-
-    void getEntropy_R(double* sr) const override;
-
-    void getGibbs_RT(double* grt) const override;
-
-    void getGibbs_ref(double* g) const override;
-
-    void getStandardVolumes_ref(double* vol) const override;
-
-    void getChemPotentials(double* mu) const override;
-
-    void getStandardChemPotentials(double* muStar) const override;
-
-    void getPartialMolarEnthalpies(double* hbar) const override;
-
-    void getPartialMolarEntropies(double* sbar) const override;
-
-    void getPartialMolarIntEnergies(double* ubar) const override;
-
-    void getParameters(AnyMap& phaseNode) const override;
-
-    void setParameters(const AnyMap& phaseNode,
-                       const AnyMap& rootNode=AnyMap()) override;
-
     //! Update the electron energy distribution.
     void updateElectronEnergyDistribution();
 
-    //! Electron species name
-    string electronSpeciesName() const {
-        return speciesName(m_electronSpeciesIndex);
-    }
 
     //! Return the distribution Number #m_distNum
     int distributionNumber() const {
@@ -463,9 +304,7 @@ public:
     //! Set reduced electric field given in [V·m²]
     void setReducedElectricField(double EN) {
         m_electricField = EN * molarDensity() * Avogadro; // [V/m]
-    }
-
-    virtual void setSolution(std::weak_ptr<Solution> soln) override;
+    }  
 
     /**
      * The elastic power loss (J/s/m³)
@@ -477,6 +316,189 @@ public:
      * electron energy loss coefficient (eV-m³/s).
      */
     double elasticPowerLoss();
+
+    //! @}
+    // ================================================================= //
+    // ================================================================= //
+    //! @name Molar Thermodynamic Properties of the Solution
+    //! @{
+
+    //! Return the Molar enthalpy. Units: J/kmol.
+    /*!
+     * For an ideal gas mixture with additional electron,
+     * @f[
+     * \hat h(T) = \sum_{k \neq k_e} X_k \hat h^0_k(T) + X_{k_e} \hat h^0_{k_e}(T_e),
+     * @f]
+     * and is a function only of temperature. The standard-state pure-species
+     * enthalpies @f$ \hat h^0_k(T) @f$ are computed by the species
+     * thermodynamic property manager.
+     *
+     * @see MultiSpeciesThermo
+     */
+    double enthalpy_mole() const override;
+
+    double entropy_mole() const override {
+        throw NotImplementedError("PlasmaPhase::entropy_mole");
+    }
+
+    double gibbs_mole() const override {
+        throw NotImplementedError("PlasmaPhase::gibbs_mole");
+    }
+
+    double intEnergy_mole() const override {
+        throw NotImplementedError("PlasmaPhase::intEnergy_mole");
+    }
+
+    double cp_mole() const override;
+    // double cp_mass() const; // Already defined in ThermoPhase
+    // double cv_mole() const; // Already defined in IdealGasPhase
+
+    //! Return the constant-pressure specific heat capacity of electrons [J/kmol/K].
+    /*!
+     * For electrons, the specific heat capacity at constant pressure does not
+     * depend on temperature. It is constant, and given by:
+     * @f[
+     * \hat c_{p,e} = \frac{5}{2} R
+     * @f]
+     * This comes from statistical mechanics, where only translational degrees of
+     * freedom contribute to the specific heat capacity (no electronic, vibrational, or
+     * rotational contributions). The factor of 5/2 arises from the 3/2R contribution
+     * from translational motion, plus an additional R from the pressure-volume work
+     * done at constant pressure.
+     */
+    double cp_mole_e() const;
+    //! Return the constant-pressure specific heat capacity of electrons [J/kg/K].
+    double cp_mass_e() const {
+        return cp_mole_e() / m_Me();
+    };
+    //! Return the constant-volume specific heat capacity of electrons [J/kmol/K].
+    double cv_mole_e() const {
+        return cp_mole_e() - GasConstant;
+    };
+    //! Return the constant-volume specific heat capacity of electrons [J/kg/K].
+    double cv_mass_e() const {
+        return cp_mass_e() - GasConstant / m_Me();
+    };
+
+    //! Return the constant-pressure specific heat capacity of heavy species [J/kmol/K].
+    /*!
+     * The mean heavy-species specific heat capacity at constant pressure is
+     * calculated as:
+     * @f[
+     * \hat c_{p,h} = \sum_{k \neq k_e} X_k \hat c^0_{p,k}(T_g)
+     * @f]
+     * where @f$ \hat c^0_{p,k}(T_g) @f$ is the standard-state specific heat capacity
+     * at constant pressure for species @f$ k @f$ and @f$ T_g @f$ is the gas temperature.
+     */
+    double cp_mole_h() const;
+    //! Return the constant-pressure specific heat capacity of heavy species [J/kg/K].
+    double cp_mass_h() const;
+    //! Return the constant-volume specific heat capacity of heavy species [J/kmol/K].
+    double cv_mole_h() const;
+    //! Return the constant-volume specific heat capacity of heavy species [J/kg/K].
+    double cv_mass_h() const;
+
+    //! @}
+    // ================================================================= //
+    // ================================================================= //
+    //! @name Mechanical Equation of State
+    //! @{
+
+    //! Return the mean temperature of the plasma phase [K].
+    /*!
+     * In a plasma phase, the electron temperature can differ from the
+     * heavy-species (gas) temperature. Therefore, the mean temperature is
+     * defined as a mole-fraction-weighted average of the electron and
+     * heavy-species temperatures:
+     * @f[
+     *      \bar{T} = \sum_{k \neq k_e} X_k T_g + X_{k_e} T_e
+     *             = (1 - X_{k_e}) T_g + X_{k_e} T_e
+     *             = T_g + X_{k_e} (T_e - T_g)
+     * @f]
+     * See the `pressure()` method for usage of the mean temperature in
+     * calculating the pressure of the plasma phase.
+     */
+    double meanTemperature() const;
+
+    //! Return the pressure of the plasma phase [Pa].
+    /*!
+     * The pressure of the plasma phase is calculated using the mean temperature,
+     * which is a mole-fraction-weighted average of the electron and heavy-species
+     * temperatures.
+     * @f[
+     *      P = \sum_k n_k k_B T_k
+     *        = \sum_{k \neq e} n_k k_B T_g + n_{e} k_B T_e
+     *        = (n_{total} - n_{e}) k_B T_g + n_{e} k_B T_e
+     *        = n_{total} (1 - X_e) k_B T_g + n_{total} X_e k_B T_e
+     *        = n_{total} k_B \bar{T}
+     * @f]
+     * where @f$ \bar{T} @f$ is the mean temperature of the plasma phase,
+     * defined in the `meanTemperature()` method.
+     * Here, @f$ n_k @f$ is the number density of species @f$ k @f$,
+     * @f$ n_{total} @f$ is the total number density of the phase,
+     * @f$ X_e @f$ is the mole fraction of electrons, @f$ T_g @f$ is the
+     * heavy-species (gas) temperature, @f$ T_e @f$ is the electron temperature,
+     * and @f$ k_B @f$ is the Boltzmann constant.
+     * 
+     * The number density times Boltzmann constant can be expressed as
+     * @f$ n_{total} k_B = C_{total} R @f$, where @f$ C_{total} @f$ is the
+     * total molar concentration of the phase and @f$ R @f$ is the gas constant.
+     */
+    double pressure() const override;
+
+    //! Set the pressure at constant temperature and composition.
+    /*!
+     * Units: Pa.
+     * This method is implemented by setting the mass density to
+     * @f[
+     * \rho = \frac{P \overline{W}}{\hat R \overline{T} }.
+     * @f]
+     *
+     * @param p Pressure (Pa)
+     */
+    void setPressure(double p) override {
+        setDensity(p * meanMolecularWeight() / (GasConstant * meanTemperature()));
+    }
+
+    //! Return the Gas Constant multiplied by the current electron temperature
+    /*!
+     *  The units are Joules kmol-1
+     */
+    double RTe() const {
+        return electronTemperature() * GasConstant;
+    }
+
+    /**
+     * Electron pressure. Units: Pa.
+     * @f[P = n_{k_e} R T_e @f]
+     */
+    virtual double electronPressure() const {
+        return GasConstant * concentration(m_electronSpeciesIndex) *
+               electronTemperature();
+    }
+
+    //! @}
+    // ================================================================= //
+    // ================================================================= //
+
+    void getEntropy_R(double* sr) const override;
+
+    void getGibbs_RT(double* grt) const override;
+
+    void getGibbs_ref(double* g) const override;
+
+    void getStandardVolumes_ref(double* vol) const override;
+
+    void getChemPotentials(double* mu) const override;
+
+    void getStandardChemPotentials(double* muStar) const override;
+
+    void getPartialMolarEnthalpies(double* hbar) const override;
+
+    void getPartialMolarEntropies(double* sbar) const override;
+
+    void getPartialMolarIntEnergies(double* ubar) const override;
+
 
 protected:
     void updateThermo() const override;
