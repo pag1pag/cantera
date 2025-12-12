@@ -107,10 +107,10 @@ public:
 
     // ================================================================= //
     // ================================================================= //
-    //! @name Overridden from ThermoPhase
+    //! @name Overridden from IdealGasPhase or ThermoPhase
+    //! @{
     bool addSpecies(shared_ptr<Species> spec) override;
     virtual void setSolution(std::weak_ptr<Solution> soln) override;
-
     void getParameters(AnyMap& phaseNode) const override;
     void setParameters(const AnyMap& phaseNode,
                        const AnyMap& rootNode=AnyMap()) override;
