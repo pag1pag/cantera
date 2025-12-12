@@ -105,13 +105,16 @@ public:
 
     void initThermo() override;
 
+    // ================================================================= //
+    // ================================================================= //
+    //! @name Overridden from ThermoPhase
     bool addSpecies(shared_ptr<Species> spec) override;
     virtual void setSolution(std::weak_ptr<Solution> soln) override;
 
     void getParameters(AnyMap& phaseNode) const override;
     void setParameters(const AnyMap& phaseNode,
                        const AnyMap& rootNode=AnyMap()) override;
-
+    //! @}
 
     //! Electron Species Index
     size_t electronSpeciesIndex() const {
@@ -491,6 +494,8 @@ public:
     // void getPartialMolarVolumes(double* vbar) const override;
 
     //! @}
+    // ================================================================= //
+    // ================================================================= //
     //! @name  Properties of the Standard State of the Species in the Solution
     //! @{
 
@@ -503,6 +508,8 @@ public:
     // void getStandardVolumes(double* vol) const override;
 
     //! @}
+    // ================================================================= //
+    // ================================================================= //
     //! @name Thermodynamic Values for the Species Reference States
     //! @{
 
