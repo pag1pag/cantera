@@ -480,24 +480,42 @@ public:
     //! @}
     // ================================================================= //
     // ================================================================= //
-
-    void getEntropy_R(double* sr) const override;
-
-    void getGibbs_RT(double* grt) const override;
-
-    void getGibbs_ref(double* g) const override;
-
-    void getStandardVolumes_ref(double* vol) const override;
+    //! @name Partial Molar Properties of the Solution
+    //! @{
 
     void getChemPotentials(double* mu) const override;
+    void getPartialMolarEnthalpies(double* hbar) const override;
+    void getPartialMolarEntropies(double* sbar) const override;
+    void getPartialMolarIntEnergies(double* ubar) const override;
+    // void getPartialMolarCp(double* cpbar) const override;
+    // void getPartialMolarVolumes(double* vbar) const override;
+
+    //! @}
+    //! @name  Properties of the Standard State of the Species in the Solution
+    //! @{
 
     void getStandardChemPotentials(double* muStar) const override;
+    // void getEnthalpy_RT(double* hrt) const override;
+    void getEntropy_R(double* sr) const override;
+    void getGibbs_RT(double* grt) const override;
+    // void getIntEnergy_RT(double* urt) const override;
+    // void getCp_R(double* cpr) const override;
+    // void getStandardVolumes(double* vol) const override;
 
-    void getPartialMolarEnthalpies(double* hbar) const override;
+    //! @}
+    //! @name Thermodynamic Values for the Species Reference States
+    //! @{
 
-    void getPartialMolarEntropies(double* sbar) const override;
+    // void getEnthalpy_RT_ref(double* hrt) const override;
+    // void getGibbs_RT_ref(double* grt) const override;
+    void getGibbs_ref(double* g) const override;
+    // void getEntropy_R_ref(double* er) const override;
+    // void getIntEnergy_RT_ref(double* urt) const override;
+    // void getCp_R_ref(double* cprt) const override;
+    void getStandardVolumes_ref(double* vol) const override;
 
-    void getPartialMolarIntEnergies(double* ubar) const override;
+    //! @}
+
 
 
 protected:
