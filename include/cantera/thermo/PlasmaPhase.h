@@ -115,6 +115,10 @@ public:
     void setParameters(const AnyMap& phaseNode,
                        const AnyMap& rootNode=AnyMap()) override;
     //! @}
+    // ================================================================= //
+    // ================================================================= //
+    //! @name Electron Species Information
+    //! @{
 
     //! Electron Species Index
     size_t electronSpeciesIndex() const {
@@ -126,7 +130,7 @@ public:
         return speciesName(m_electronSpeciesIndex);
     }
 
-
+    //! @}
     // ================================================================= //
     // ================================================================= //
     //! @name Electron Energy Distribution Functions
