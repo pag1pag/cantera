@@ -245,46 +245,46 @@ public:
     void updateElectronEnergyDistribution();
 
 
-    //! Return the distribution Number #m_distNum
+    //! Return the distribution number #m_distNum.
     int distributionNumber() const {
         return m_distNum;
     }
 
-    //! Return the electron energy level Number #m_levelNum
+    //! Return the electron energy level number #m_levelNum.
     int levelNumber() const {
         return m_levelNum;
     }
 
-    //! Get the indicies for inelastic electron collisions
+    //! Get the indicies for inelastic electron collisions.
     //! @since New in %Cantera 3.2.
     const vector<size_t>& kInelastic() const {
         return m_kInelastic;
     }
 
-    //! Get the indices for elastic electron collisions
+    //! Get the indices for elastic electron collisions.
     //! @since New in %Cantera 3.2.
     const vector<size_t>& kElastic() const {
         return m_kElastic;
     }
 
-    //! target of a specific process
+    //! Return the target of a specific process.
     //! @since New in %Cantera 3.2.
     size_t targetIndex(size_t i) const {
         return m_targetSpeciesIndices[i];
     }
 
-    //! Get the frequency of the applied electric field [Hz]
+    //! Get the frequency of the applied electric field [Hz].
     //! @since New in %Cantera 3.2.
     double electricFieldFrequency() const {
         return m_electricFieldFrequency;
     }
 
-    //! Get the applied electric field strength [V/m]
+    //! Get the applied electric field strength [V/m].
     double electricField() const {
         return m_electricField;
     }
 
-    //! Set the absolute electric field strength [V/m]
+    //! Set the absolute electric field strength [V/m].
     void setElectricField(double E) {
         m_electricField = E;
     }
@@ -296,18 +296,18 @@ public:
     //    return ne / n_total;
     //}
 
-    //! Get the reduced electric field strength [V·m²]
+    //! Get the reduced electric field strength [V·m²].
     double reducedElectricField() const {
         return m_electricField / (molarDensity() * Avogadro);
     }
 
-    //! Set reduced electric field given in [V·m²]
+    //! Set reduced electric field given in [V·m²].
     void setReducedElectricField(double EN) {
         m_electricField = EN * molarDensity() * Avogadro; // [V/m]
     }  
 
     /**
-     * The elastic power loss (J/s/m³)
+     * The elastic power loss [J/s/m³]
      *   @f[
      *     P_k = N_A N_A C_e e \sum_k C_k K_k,
      *   @f]
